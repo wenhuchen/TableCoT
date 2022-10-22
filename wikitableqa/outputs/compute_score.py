@@ -24,15 +24,15 @@ def maybe_normalize_float(span: str):
 
 
 def maybe_normalize_number(text: str) -> str:
-	units = [
-		"zero", "one", "two", "three", "four", "five", "six", "seven", "eight",
-		"nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
-		"sixteen", "seventeen", "eighteen", "nineteen",
-	]
-	for index, unit in enumerate(units):
-		if text == unit:
-			return str(float(index))
-	return text
+    units = [
+        "zero", "one", "two", "three", "four", "five", "six", "seven", "eight",
+        "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+        "sixteen", "seventeen", "eighteen", "nineteen",
+    ]
+    for index, unit in enumerate(units):
+        if text == unit:
+            return str(float(index))
+    return text
 
 
 def remove_punc(text: str) -> str:
@@ -45,66 +45,66 @@ def remove_articles(text: str) -> str:
 
 
 def eval_ex_match(pred, gold_result):
-	pred = pred.lower()
-	gold_result = gold_result.lower()
+    pred = pred.lower()
+    gold_result = gold_result.lower()
 
-	# Replace and with comma
-	if ' and ' in pred and '|' in gold_result:
-		pred = pred.replace(' and ', ', ')
+    # Replace and with comma
+    if ' and ' in pred and '|' in gold_result:
+        pred = pred.replace(' and ', ', ')
 
-	pred = [span.strip() for span in pred.split(', ')]
+    pred = [span.strip() for span in pred.split(', ')]
 
-	if '|' in gold_result:
-		gold_result = [span.strip() for span in gold_result.split('|')]
-	else:
-		gold_result = [span.strip() for span in gold_result.split(', ')]
+    if '|' in gold_result:
+        gold_result = [span.strip() for span in gold_result.split('|')]
+    else:
+        gold_result = [span.strip() for span in gold_result.split(', ')]
 
-	pred = [maybe_normalize_number(remove_punc(remove_articles(span.strip()))) for span in pred]
-	gold_result = [maybe_normalize_number(remove_punc(remove_articles(span.strip()))) for span in gold_result]
+    pred = [maybe_normalize_number(remove_punc(remove_articles(span.strip()))) for span in pred]
+    gold_result = [maybe_normalize_number(remove_punc(remove_articles(span.strip()))) for span in gold_result]
 
-	# print(pred, ' # ', gold_result)
-	clean_float = True  # TODO
-	if clean_float:
-		pred = [maybe_normalize_float(span) for span in pred]
-		gold_result = [maybe_normalize_float(span) for span in gold_result]
+    # print(pred, ' # ', gold_result)
+    clean_float = True  # TODO
+    if clean_float:
+        pred = [maybe_normalize_float(span) for span in pred]
+        gold_result = [maybe_normalize_float(span) for span in gold_result]
 
-	return sorted(pred) == sorted(gold_result)
+    return sorted(pred) == sorted(gold_result)
 
 
 if __name__ == "__main__":
-	args = parser.parse_args()
+    args = parser.parse_args()
 
-	with open('../test_qa.json', 'r') as f:
-		tables = json.load(f)
+    with open('../test_qa.json', 'r') as f:
+        tables = json.load(f)
 
-	counter = {}
-	for filename in glob.glob(args.inputs):
-		correct = 0
-		wrong = 0
-		print('Start', filename)
-		with open(filename, 'r') as f:
-			for line in f:
-				response = json.loads(line)
-				if 'prediction' in response:
-					table_length = len(tables[response['key']]['table'].split(' ')) // 100
-					if table_length not in counter:
-						counter[table_length] = {'correct': 0, 'wrong': 0}
+    counter = {}
+    for filename in glob.glob(args.inputs):
+        correct = 0
+        wrong = 0
+        print('Start', filename)
+        with open(filename, 'r') as f:
+            for line in f:
+                response = json.loads(line)
+                if 'prediction' in response:
+                    table_length = len(tables[response['key']]['table'].split(' ')) // 100
+                    if table_length not in counter:
+                        counter[table_length] = {'correct': 0, 'wrong': 0}
 
-					if eval_ex_match(response['prediction'], response['answer']):
-						correct += 1
-						counter[table_length]['correct'] += 1
-					else:
-						wrong += 1
-						counter[table_length]['wrong'] += 1
-				else:
-					continue
+                    if eval_ex_match(response['prediction'], response['answer']):
+                        correct += 1
+                        counter[table_length]['correct'] += 1
+                    else:
+                        wrong += 1
+                        counter[table_length]['wrong'] += 1
+                else:
+                    continue
 
-				if correct + wrong >= args.cutoff and args.cutoff > -1:
-					break
+                if correct + wrong >= args.cutoff and args.cutoff > -1:
+                    break
 
-		print('Done with', filename)
-		print('accuracy: ', correct / (correct + wrong), 'correct example: ', correct, 'total example: ', correct + wrong)
+        print('Done with', filename)
+        print('accuracy: ', correct / (correct + wrong), 'correct example: ', correct, 'total example: ', correct + wrong)
 
-	counter = sorted(counter.items(), key=lambda x: x[0])
-	for k, v in counter:
-		print(k, v['correct'] / (v['correct'] + v['wrong']))
+    counter = sorted(counter.items(), key=lambda x: x[0])
+    for k, v in counter:
+        print(k, v['correct'] / (v['correct'] + v['wrong']))

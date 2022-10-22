@@ -15,10 +15,10 @@ parser.add_argument("--model", default='text-davinci-002', type=str)
 parser.add_argument("--start", required=True, type=int)
 parser.add_argument("--end", required=True, type=int)
 parser.add_argument("--dry_run", default=False, action="store_true",
-	help="whether it's a dry run or real run.")
+    help="whether it's a dry run or real run.")
 parser.add_argument(
-	"--temperature", type=float, default=0.7,
-	help="temperature of 0 implies greedy sampling.")
+    "--temperature", type=float, default=0.7,
+    help="temperature of 0 implies greedy sampling.")
 
 demonstration = {}
 demonstration["direct"] = {}
@@ -132,75 +132,75 @@ Explanation: the team only lost 2 games instead of 3 games, therefore, the claim
 """
 
 if __name__ == "__main__":
-	args = parser.parse_args()
+    args = parser.parse_args()
 
-	openai.api_key = os.getenv('OPENAI_KEY')
+    openai.api_key = os.getenv('OPENAI_KEY')
 
-	with open(f'test_statements_{args.channel}.json') as f:
-		tabfact = json.load(f)
+    with open(f'test_statements_{args.channel}.json') as f:
+        tabfact = json.load(f)
 
-	now = datetime.now() 
-	dt_string = now.strftime("%d_%H_%M")
+    now = datetime.now() 
+    dt_string = now.strftime("%d_%H_%M")
 
-	keys = list(tabfact.keys())[args.start:args.end]
+    keys = list(tabfact.keys())[args.start:args.end]
 
-	correct = 0
-	wrong = 0
+    correct = 0
+    wrong = 0
 
-	if not args.dry_run:
-		model_version = args.model.split('-')[1]
-		fw = open(f'outputs/response_s{args.start}_e{args.end}_{args.channel}_{args.option}_{model_version}_{dt_string}.json', 'w')
-		tmp = {'demonstration': demonstration[args.option][args.channel]}
-		fw.write(json.dumps(tmp) + '\n')
+    if not args.dry_run:
+        model_version = args.model.split('-')[1]
+        fw = open(f'outputs/response_s{args.start}_e{args.end}_{args.channel}_{args.option}_{model_version}_{dt_string}.json', 'w')
+        tmp = {'demonstration': demonstration[args.option][args.channel]}
+        fw.write(json.dumps(tmp) + '\n')
 
-	for key in tqdm.tqdm(keys):
-		entry = tabfact[key]
+    for key in tqdm.tqdm(keys):
+        entry = tabfact[key]
 
-		statement = entry['statement']
-		label = entry['label']
+        statement = entry['statement']
+        label = entry['label']
 
-		#### Formalizing the k-shot demonstration. #####
-		prompt = demonstration[args.option][args.channel] + '\n'
-		prompt += f'Read the table below regarding "{entry["title"]}" to verify whether the provided claim is true or false.\n\n'
-		# prompt += f'Title: {entry["title"]}:\n'
-		prompt += entry['table'] + '\n'
-		# prompt += 'Please verify whether following claim is true or false.\n\n'
-		prompt += 'Claim: ' + statement + '\n' + 'Explanation:'
+        #### Formalizing the k-shot demonstration. #####
+        prompt = demonstration[args.option][args.channel] + '\n'
+        prompt += f'Read the table below regarding "{entry["title"]}" to verify whether the provided claim is true or false.\n\n'
+        # prompt += f'Title: {entry["title"]}:\n'
+        prompt += entry['table'] + '\n'
+        # prompt += 'Please verify whether following claim is true or false.\n\n'
+        prompt += 'Claim: ' + statement + '\n' + 'Explanation:'
 
-		if args.dry_run:
-			print('------------------------------------------------', key)
-			print(prompt)
-			print()
-		else:
-			response = openai.Completion.create(
-			  model=args.model,
-			  prompt=prompt,
-			  temperature=0.5,
-			  max_tokens=80,
-			  top_p=1,
-			  frequency_penalty=0,
-			  presence_penalty=0
-			)
+        if args.dry_run:
+            print('------------------------------------------------', key)
+            print(prompt)
+            print()
+        else:
+            response = openai.Completion.create(
+              model=args.model,
+              prompt=prompt,
+              temperature=0.5,
+              max_tokens=80,
+              top_p=1,
+              frequency_penalty=0,
+              presence_penalty=0
+            )
 
-			response = response['choices'][0]["text"].strip().strip('\n').strip('\n').split('\n')[0]
-			if 'true' in response:
-				predict = 1
-			elif 'false' in response:
-				predict = 0
-			elif 'support' in response:
-				predict = 1
-			else:
-				predict = 0
+            response = response['choices'][0]["text"].strip().strip('\n').strip('\n').split('\n')[0]
+            if 'true' in response:
+                predict = 1
+            elif 'false' in response:
+                predict = 0
+            elif 'support' in response:
+                predict = 1
+            else:
+                predict = 0
 
-			if predict == label:
-				correct += 1
-			else:
-				wrong += 1
+            if predict == label:
+                correct += 1
+            else:
+                wrong += 1
 
-			tmp = {'key': key, 'statement': statement, 'response': response, 'label': label, 'prediction': predict}
+            tmp = {'key': key, 'statement': statement, 'response': response, 'label': label, 'prediction': predict}
 
-			fw.write(json.dumps(tmp) + '\n')
+            fw.write(json.dumps(tmp) + '\n')
 
-	if not args.dry_run:
-		print(correct, wrong, correct / (correct + wrong))
-		fw.close()
+    if not args.dry_run:
+        print(correct, wrong, correct / (correct + wrong))
+        fw.close()

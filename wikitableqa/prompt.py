@@ -13,10 +13,10 @@ parser.add_argument("--model", default='text-davinci-002', type=str)
 parser.add_argument("--start", required=True, type=int)
 parser.add_argument("--end", required=True, type=int)
 parser.add_argument("--dry_run", default=False, action="store_true",
-	help="whether it's a dry run or real run.")
+    help="whether it's a dry run or real run.")
 parser.add_argument(
-	"--temperature", type=float, default=0.7,
-	help="temperature of 0 implies greedy sampling.")
+    "--temperature", type=float, default=0.7,
+    help="temperature of 0 implies greedy sampling.")
 
 demonstration = {}
 demonstration['direct'] = """
@@ -78,62 +78,62 @@ Explanation: David Moncoutié spent the most time to finish the game and ranked 
 """
 
 if __name__ == "__main__":
-	args = parser.parse_args()
+    args = parser.parse_args()
 
-	openai.api_key = os.getenv('OPENAI_KEY')
+    openai.api_key = os.getenv('OPENAI_KEY')
 
-	with open(f'test_qa.json') as f:
-		wikitableqa = json.load(f)
+    with open(f'test_qa.json') as f:
+        wikitableqa = json.load(f)
 
-	now = datetime.now() 
-	dt_string = now.strftime("%d_%H_%M")
+    now = datetime.now() 
+    dt_string = now.strftime("%d_%H_%M")
 
-	keys = list(wikitableqa.keys())[args.start:args.end]
+    keys = list(wikitableqa.keys())[args.start:args.end]
 
-	correct = 0
-	wrong = 0
+    correct = 0
+    wrong = 0
 
-	if not args.dry_run:
-		model_version = args.model.split('-')[1]
-		fw = open(f'outputs/response_s{args.start}_e{args.end}_{args.option}_{model_version}_{dt_string}.json', 'w')
-		tmp = {'demonstration': demonstration[args.option]}
-		fw.write(json.dumps(tmp) + '\n')
+    if not args.dry_run:
+        model_version = args.model.split('-')[1]
+        fw = open(f'outputs/response_s{args.start}_e{args.end}_{args.option}_{model_version}_{dt_string}.json', 'w')
+        tmp = {'demonstration': demonstration[args.option]}
+        fw.write(json.dumps(tmp) + '\n')
 
-	for key in tqdm.tqdm(keys):
-		entry = wikitableqa[key]
+    for key in tqdm.tqdm(keys):
+        entry = wikitableqa[key]
 
-		question = entry['question']
-		answer = entry['answer']
+        question = entry['question']
+        answer = entry['answer']
 
-		#### Formalizing the k-shot demonstration. #####
-		prompt = demonstration[args.option] + '\n'
-		prompt += f'Read the table blow regarding "{entry["title"]}" to answer the following question.\n\n'
-		if 'davinci' not in args.model:
-			prompt += '\n'.join(entry['table'].split('\n')[:15])
-		else:
-			prompt += entry['table'] + '\n'
-		prompt += 'Question: ' + question + '\nExplanation:'
+        #### Formalizing the k-shot demonstration. #####
+        prompt = demonstration[args.option] + '\n'
+        prompt += f'Read the table blow regarding "{entry["title"]}" to answer the following question.\n\n'
+        if 'davinci' not in args.model:
+            prompt += '\n'.join(entry['table'].split('\n')[:15])
+        else:
+            prompt += entry['table'] + '\n'
+        prompt += 'Question: ' + question + '\nExplanation:'
 
-		if args.dry_run:
-			print(prompt)
-			print('answer: ', answer)
-		else:
-			response = openai.Completion.create(
-			  model=args.model,
-			  prompt=prompt,
-			  temperature=0.7,
-			  max_tokens=64,
-			  top_p=1,
-			  frequency_penalty=0,
-			  presence_penalty=0
-			)
+        if args.dry_run:
+            print(prompt)
+            print('answer: ', answer)
+        else:
+            response = openai.Completion.create(
+              model=args.model,
+              prompt=prompt,
+              temperature=0.7,
+              max_tokens=64,
+              top_p=1,
+              frequency_penalty=0,
+              presence_penalty=0
+            )
 
-			response = response['choices'][0]["text"].strip().strip('\n').strip('\n').split('\n')[0]
+            response = response['choices'][0]["text"].strip().strip('\n').strip('\n').split('\n')[0]
 
-			tmp = {'key': key, 'question': question, 'response': response, 'answer': answer, 'table_id': entry['table_id']}
+            tmp = {'key': key, 'question': question, 'response': response, 'answer': answer, 'table_id': entry['table_id']}
 
-			fw.write(json.dumps(tmp) + '\n')
+            fw.write(json.dumps(tmp) + '\n')
 
-	if not args.dry_run:
-		print(correct, wrong, correct / (correct + wrong + 0.001))
-		fw.close()
+    if not args.dry_run:
+        print(correct, wrong, correct / (correct + wrong + 0.001))
+        fw.close()
