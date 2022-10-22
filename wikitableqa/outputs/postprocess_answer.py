@@ -37,52 +37,52 @@ answer: World Junior Championships
 
 
 def get_answer(pred):
-	match = re.search(r'(The|the) answer is ([^\.]+)\.$', pred)
-	if match:
-		return match.group(2).strip('"'), True
-	return pred, False
+    match = re.search(r'(The|the) answer is ([^\.]+)\.$', pred)
+    if match:
+        return match.group(2).strip('"'), True
+    return pred, False
 
 
 if __name__ == "__main__":
-	args = parser.parse_args()
-	openai.api_key = os.getenv('OPENAI_KEY')
+    args = parser.parse_args()
+    openai.api_key = os.getenv('OPENAI_KEY')
 
-	for filename in glob.glob(args.inputs):
-		print('Start', filename)
+    for filename in glob.glob(args.inputs):
+        print('Start', filename)
 
-		fw = open(filename + '.processed', 'w')
-		with open(filename, 'r') as f:
-			for line in tqdm.tqdm(f):
-				response = json.loads(line.strip())
-				if 'response' in response:
-					prediction = response['response'].strip('\n').strip('\n\n').split('\n')[0]
-					prediction, success = get_answer(prediction)
+        fw = open(filename + '.processed', 'w')
+        with open(filename, 'r') as f:
+            for line in tqdm.tqdm(f):
+                response = json.loads(line.strip())
+                if 'response' in response:
+                    prediction = response['response'].strip('\n').strip('\n\n').split('\n')[0]
+                    prediction, success = get_answer(prediction)
 
-					if success:
-						response.pop('response')
-						response['prediction'] = prediction
-						response['direct'] = True
-						fw.write(json.dumps(response) + '\n')
-					else:
-						prompt = demonstration + '\n'
-						prompt += f'question: {response["question"]}\n'
-						prompt += f'evidence: {response["response"]}\n'
-						prompt += 'answer:'
+                    if success:
+                        response.pop('response')
+                        response['prediction'] = prediction
+                        response['direct'] = True
+                        fw.write(json.dumps(response) + '\n')
+                    else:
+                        prompt = demonstration + '\n'
+                        prompt += f'question: {response["question"]}\n'
+                        prompt += f'evidence: {response["response"]}\n'
+                        prompt += 'answer:'
 
-						tmp = openai.Completion.create(
-						  model="text-davinci-002",
-						  prompt=prompt,
-						  temperature=0.7,
-						  max_tokens=64,
-						  top_p=1,
-						  frequency_penalty=0,
-						  presence_penalty=0
-						)
-						tmp = tmp['choices'][0]["text"].strip().strip('\n')
+                        tmp = openai.Completion.create(
+                          model="text-davinci-002",
+                          prompt=prompt,
+                          temperature=0.7,
+                          max_tokens=64,
+                          top_p=1,
+                          frequency_penalty=0,
+                          presence_penalty=0
+                        )
+                        tmp = tmp['choices'][0]["text"].strip().strip('\n')
 
-						response.pop('response')
-						response['prediction'] = tmp
-						response['extracted'] = True
-						fw.write(json.dumps(response) + '\n')
+                        response.pop('response')
+                        response['prediction'] = tmp
+                        response['extracted'] = True
+                        fw.write(json.dumps(response) + '\n')
 
-		fw.close()
+        fw.close()
