@@ -1,5 +1,5 @@
 # TableCoT
-The code and data used for [Large Language Models are few(1)-shot Table Reasoners](https://arxiv.org/abs/2210.06710)
+The code and data used for EACL-2023 Paper [Large Language Models are few(1)-shot Table Reasoners](https://arxiv.org/abs/2210.06710)
 
 
 ## Preliminary
